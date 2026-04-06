@@ -1,1 +1,1 @@
-"""p2clite: xử lý ảnh nhẹ (OpenCV Haar, không rembg/mediapipe)."""
+"""p2clite: xem / xuất ảnh gốc (không crop, không nền xanh)."""

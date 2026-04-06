@@ -4,5 +4,3 @@ __pycache__/
 venv/
 .env
 .streamlit/secrets.toml
-# SSD weights (~10MB) — tải lần đầu khi chạy / deploy
-backend/models/*.caffemodel
