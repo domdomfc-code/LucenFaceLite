@@ -16,7 +16,7 @@ if str(_ROOT) not in sys.path:
 from backend.image_utils import ProcessResult, pil_to_jpeg_bytes, process_portrait_lite
 
 APP_TITLE = "LucenFace Lite"
-APP_BUILD = "1.0-lite-fast"
+APP_BUILD = "1.1-dnn-ssd"
 BLUE = "#005BC4"
 BG = "#F6F9FF"
 
@@ -118,14 +118,14 @@ def main() -> None:
               <div class="muted" style="font-size:0.8rem;font-weight:700;">Build {APP_BUILD} — deploy nhanh</div>
             </div>
           </div>
-          <div><span class="pill">OpenCV + Haar</span><span class="pill">Không rembg</span></div>
+          <div><span class="pill">OpenCV DNN / Haar</span><span class="pill">Không rembg</span></div>
         </div>
         """,
         unsafe_allow_html=True,
     )
     st.markdown(f'<div class="app-title">Chuẩn hóa ảnh chân dung (Lite)</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="app-subtitle">Bản nhẹ: không MediaPipe/rembg/onnx — phát hiện mặt Haar, crop, cân bằng sáng, ghép nền xanh (letterbox).</div>',
+        '<div class="app-subtitle">Bản nhẹ: ưu tiên phát hiện mặt OpenCV DNN (SSD), fallback Haar; CLAHE; không rembg — viền nền xanh tùy chọn.</div>',
         unsafe_allow_html=True,
     )
 
@@ -134,7 +134,25 @@ def main() -> None:
         ratio = st.selectbox("Tỷ lệ đầu ra", ["3x4", "4x6"], index=0)
         st.caption("Tối đa 50 ảnh/lần.")
         st.markdown("---")
-        blue_hex = st.color_picker("Màu nền", value=BLUE)
+        st.markdown("#### Độ chính xác (DNN)")
+        dnn_conf = st.slider(
+            "Ngưỡng tin cậy SSD",
+            min_value=0.30,
+            max_value=0.65,
+            value=0.45,
+            step=0.05,
+            help="Cao hơn → ít box nhầm (dễ bỏ sót mặt nhỏ / nghiêng). Thấp hơn → nhạy hơn.",
+        )
+        lb_margin = st.slider(
+            "Lề nền xanh (letterbox)",
+            min_value=0.0,
+            max_value=0.10,
+            value=0.0,
+            step=0.01,
+            format="%.2f",
+            help="0 = ảnh fill đủ khung chuẩn (không viền). >0 = thu ảnh lại để lộ nền xanh.",
+        )
+        blue_hex = st.color_picker("Màu nền (khi có lề)", value=BLUE)
 
     blue_rgb = tuple(int(blue_hex.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
@@ -168,7 +186,13 @@ def main() -> None:
             st.error(f"Không đọc được: `{up.name}`")
             continue
 
-        res = process_portrait_lite(pil, ratio=ratio, blue_rgb=blue_rgb)
+        res = process_portrait_lite(
+            pil,
+            ratio=ratio,
+            blue_rgb=blue_rgb,
+            dnn_min_confidence=float(dnn_conf),
+            letterbox_margin=float(lb_margin),
+        )
 
         with st.container():
             st.markdown('<div class="card">', unsafe_allow_html=True)
